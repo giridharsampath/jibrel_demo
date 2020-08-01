@@ -1,4 +1,4 @@
-Skeleton ReactJS App with the following libraries
+Jibrel Demo
 
 1. axios
 2. bootstrap
