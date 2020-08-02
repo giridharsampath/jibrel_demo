@@ -20,5 +20,5 @@ Jibrel Demo
 Steps to run it.
 
 1. Clone the repository
-2. yarn install
-3. yarn start
+2. npm i
+3. npm start -- --reset-cache
