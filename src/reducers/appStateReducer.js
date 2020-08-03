@@ -4,7 +4,6 @@ const initialState = {
   count: 0,
   list: [],
   storedData: {},
-  datatable: {},
 };
 
 export default function (state = initialState, action) {
@@ -25,33 +24,9 @@ export default function (state = initialState, action) {
 }
 
 const resetAllDataInAddress = (payload, state) => {
-  const { storedData, datatable } = state;
+  const { storedData } = state;
   const { userAddress } = payload;
-  if (storedData) {
-    storedData[userAddress] = {};
-    // datatable[userAddress] = {};
-    datatable[userAddress] = {
-      columns: [
-        {
-          label: "Block Number",
-          field: "blocknumber",
-        },
-        {
-          label: "Address",
-          field: "address",
-        },
-        {
-          label: "Block Hash",
-          field: "blockhash",
-        },
-        {
-          label: "Transaction Hash",
-          field: "txhhash",
-        },
-      ],
-      rows: [],
-    };
-  }
+  storedData[userAddress] = {};
 
   return {
     ...state,
@@ -87,54 +62,20 @@ const setStartAndEnd = (payload, state) => {
 
 const setReceivedData = (payload, state) => {
   const { startingBlock, endingBlock, userAddress, data } = payload;
-  const { storedData, datatable } = state;
+  const { storedData } = state;
   if (!!!storedData[userAddress]) {
     storedData[userAddress] = { data: [] };
+  }
+  if (!!!storedData[userAddress]["data"]) {
+    storedData[userAddress]["data"] = [];
   }
 
   storedData[userAddress]["data"].push(...data);
   storedData[userAddress]["startingBlock"] = startingBlock;
   storedData[userAddress]["endingBlock"] = endingBlock;
-  if (
-    !datatable[userAddress] ||
-    Object.keys(datatable[userAddress]).length === 0
-  ) {
-    datatable[userAddress] = {
-      columns: [
-        {
-          label: "Block Number",
-          field: "blocknumber",
-        },
-        {
-          label: "Address",
-          field: "address",
-        },
-        {
-          label: "Block Hash",
-          field: "blockhash",
-        },
-        {
-          label: "Transaction Hash",
-          field: "txhhash",
-        },
-      ],
-      rows: [],
-    };
-  }
-
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
-    datatable[userAddress].rows.push({
-      blocknumber: row["blockNumber"],
-      address: row["address"],
-      blockhash: row["blockHash"],
-      txhhash: row["transactionHash"],
-    });
-  }
 
   return {
     ...state,
     storedData,
-    datatable,
   };
 };

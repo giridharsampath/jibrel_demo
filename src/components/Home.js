@@ -214,7 +214,6 @@ class Home extends Component {
           );
           endingBlock = startingBlock;
           startingBlock = endingBlock - currentOffset;
-          if (startingBlock < 0) startingBlock = 1;
           setStartAndEnd(
             startingBlock,
             endingBlock,
@@ -252,7 +251,6 @@ class Home extends Component {
     const { appState } = this.props;
     let startingBlock = null;
     let endingBlock = null;
-    let data = [];
     let datatable = {
       columns: [
         {
@@ -272,7 +270,7 @@ class Home extends Component {
           field: "txnhash",
         },
       ],
-      rows: [],
+      rows: this.renderRowsOfDataTable(),
     };
     if (
       appState.storedData &&
@@ -291,14 +289,6 @@ class Home extends Component {
         appState.storedData[
           `${this.state.userAddress}_${this.state.erc20Address}`
         ]["endingBlock"];
-      data =
-        appState.storedData[
-          `${this.state.userAddress}_${this.state.erc20Address}`
-        ]["data"];
-      datatable =
-        appState.datatable[
-          `${this.state.userAddress}_${this.state.erc20Address}`
-        ];
     }
     return (
       <Styles>
@@ -348,7 +338,7 @@ class Home extends Component {
             </span>
           )}
           <br />
-          <span>{`Total data count: ${
+          <span>{`Total Transctions count: ${
             appState &&
             appState.storedData &&
             appState.storedData[
@@ -363,9 +353,6 @@ class Home extends Component {
               : 0
           }`}</span>
           <br />
-          <span>
-            <b>Total Transactions Found: {data ? data.length : 0}</b>
-          </span>
           <MDBDataTableV5
             hover
             entriesOptions={[25, 50, 100]}
@@ -376,6 +363,33 @@ class Home extends Component {
       </Styles>
     );
   }
+
+  renderRowsOfDataTable = () => {
+    const { userAddress, erc20Address, currentlyRunning } = this.state;
+    const { appState } = this.props;
+    const returnRows = [];
+    if (
+      currentlyRunning != null &&
+      appState &&
+      appState["storedData"] &&
+      appState["storedData"][`${userAddress}_${erc20Address}`]
+    ) {
+      const data =
+        appState["storedData"][`${userAddress}_${erc20Address}`]["data"];
+      if (data) {
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          returnRows.push({
+            blocknumber: row["blockNumber"],
+            address: row["address"],
+            blockhash: row["blockHash"],
+            txnhash: row["transactionHash"],
+          });
+        }
+      }
+    }
+    return returnRows;
+  };
 }
 
 Home.propTypes = {

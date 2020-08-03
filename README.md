@@ -1,5 +1,13 @@
 Jibrel Demo
 
+Steps to run it.
+
+1. Clone the repository
+2. npm i
+3. npm start -- --reset-cache
+
+Libraries:
+
 1. axios
 2. bootstrap
 3. lodash
@@ -16,9 +24,5 @@ Jibrel Demo
 14. redux-devtools-extension
 15. redux-thunk
 16. styled-components
-
-Steps to run it.
-
-1. Clone the repository
-2. npm i
-3. npm start -- --reset-cache
+17. web3
+18. redux-persist
