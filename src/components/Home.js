@@ -2,14 +2,12 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import {
-  changeText,
-  addToList,
   setStartAndEnd,
   setReceivedData,
+  setDataRetrievalCompleted,
+  resetAllData,
 } from "../actions/appActions";
 import styled from "styled-components";
-import worker from "./worker";
-// import WebWorker from "./workerSetup";
 import { Form, Button } from "react-bootstrap";
 import { MDBDataTableV5 } from "mdbreact";
 const Web3 = require("web3");
@@ -35,24 +33,15 @@ class Home extends Component {
     };
   }
 
-  fetchDataInBackground = () => {
-    this.worker.postMessage("Fetch Users");
-
-    this.worker.addEventListener("message", (event) => {
-      alert(event.data.length);
-      this.setState({
-        count: event.data.length,
-      });
-    });
-  };
-
-  componentDidMount = () => {
-    this.worker = new Worker(worker);
-  };
-
   handleChange = (event, field) => {
     event.preventDefault();
     this.setState({ [field]: event.target.value });
+  };
+
+  resetData = () => {
+    this.props.resetAllData(
+      `${this.state.userAddress}_${this.state.erc20Address}`
+    );
   };
 
   onSubmit = async (e) => {
@@ -74,24 +63,94 @@ class Home extends Component {
         topics: [
           [
             web3.utils.sha3("Transfer(address,address,uint256)"),
-            // web3.utils.sha3("Transfer(address,address,uint256)"),
             web3.utils.sha3("Approval(address,address,uint256)"),
           ],
         ],
       });
     } catch (err) {
-      if (err.message.indexOf("Provided address") != -1) {
+      if (err.message.indexOf("Provided address") !== -1) {
         alert(err.message);
         return;
       }
     }
 
     try {
-      this.setState({ currentlyRunning: true });
       const { storedData } = appState;
-      let endingBlock = latestBlock;
-      let startingBlock = latestBlock - 5000;
       if (storedData[`${this.state.userAddress}_${this.state.erc20Address}`]) {
+        const { completed } = storedData[
+          `${this.state.userAddress}_${this.state.erc20Address}`
+        ];
+        const latestCompletedBlock =
+          storedData[`${this.state.userAddress}_${this.state.erc20Address}`][
+            "latestBlock"
+          ];
+        if (completed) {
+          const startingBlock = latestCompletedBlock;
+          const endingBlock = latestBlock;
+          const response1 = await web3.eth.getPastLogs({
+            fromBlock: startingBlock,
+            toBlock: endingBlock,
+            address: [this.state.erc20Address],
+            topics: [
+              [
+                web3.utils.sha3("Approval(address,address,uint256)"),
+                web3.utils.sha3("Transfer(address,address,uint256)"),
+              ],
+              null,
+              [
+                web3.utils.padLeft(this.state.userAddress, 64),
+                web3.utils.padLeft(this.state.userAddress, 64),
+              ],
+            ],
+          });
+          const response2 = await web3.eth.getPastLogs({
+            fromBlock: startingBlock,
+            toBlock: endingBlock,
+            address: [this.state.erc20Address],
+            topics: [
+              [
+                web3.utils.sha3("Approval(address,address,uint256)"),
+                web3.utils.sha3("Transfer(address,address,uint256)"),
+              ],
+              [
+                web3.utils.padLeft(this.state.userAddress, 64),
+                web3.utils.padLeft(this.state.userAddress, 64),
+              ],
+            ],
+          });
+          const response = [...response1, ...response2];
+          // console.log(response);
+          setReceivedData(
+            startingBlock,
+            endingBlock,
+            this.state.userAddress,
+            this.state.erc20Address,
+            response
+          );
+          return;
+        }
+      }
+    } catch (err) {}
+
+    try {
+      this.setState({ currentlyRunning: true });
+
+      const { storedData } = appState;
+      let currentOffset = 100000;
+      let endingBlock = latestBlock;
+      let startingBlock = latestBlock - currentOffset;
+      if (startingBlock < 0) startingBlock = 1;
+      if (
+        storedData &&
+        storedData[`${this.state.userAddress}_${this.state.erc20Address}`] &&
+        storedData[`${this.state.userAddress}_${this.state.erc20Address}`][
+          "endingBlock"
+        ] &&
+        storedData &&
+        storedData[`${this.state.userAddress}_${this.state.erc20Address}`][
+          "startingBlock"
+        ]
+      ) {
         endingBlock =
           storedData[`${this.state.userAddress}_${this.state.erc20Address}`][
             "endingBlock"
@@ -106,23 +165,45 @@ class Home extends Component {
         startingBlock,
         endingBlock,
         this.state.userAddress,
-        this.state.erc20Address
+        this.state.erc20Address,
+        latestBlock
       );
-      while (startingBlock > 1000000) {
+      while (startingBlock > 0) {
         try {
-          const response = await web3.eth.getPastLogs({
+          // startingBlock = 8411835;
+          // endingBlock = 8411850;
+          const response1 = await web3.eth.getPastLogs({
             fromBlock: startingBlock,
             toBlock: endingBlock,
             address: [this.state.erc20Address],
             topics: [
               [
-                web3.utils.sha3("Transfer(address,address,uint256)"),
-                // web3.utils.sha3("Transfer(address,address,uint256)"),
                 web3.utils.sha3("Approval(address,address,uint256)"),
-                // web3.utils.sha3("Approval(address,address,uint256)"),
+                web3.utils.sha3("Transfer(address,address,uint256)"),
+              ],
+              null,
+              [
+                web3.utils.padLeft(this.state.userAddress, 64),
+                web3.utils.padLeft(this.state.userAddress, 64),
               ],
             ],
           });
+          const response2 = await web3.eth.getPastLogs({
+            fromBlock: startingBlock,
+            toBlock: endingBlock,
+            address: [this.state.erc20Address],
+            topics: [
+              [
+                web3.utils.sha3("Approval(address,address,uint256)"),
+                web3.utils.sha3("Transfer(address,address,uint256)"),
+              ],
+              [
+                web3.utils.padLeft(this.state.userAddress, 64),
+                web3.utils.padLeft(this.state.userAddress, 64),
+              ],
+            ],
+          });
+          const response = [...response1, ...response2];
           // console.log(response);
           setReceivedData(
             startingBlock,
@@ -132,14 +213,23 @@ class Home extends Component {
             response
           );
           endingBlock = startingBlock;
-          startingBlock = endingBlock - 5000;
+          startingBlock = endingBlock - currentOffset;
+          if (startingBlock < 0) startingBlock = 1;
           setStartAndEnd(
             startingBlock,
             endingBlock,
             this.state.userAddress,
             this.state.erc20Address
           );
-        } catch (err) {}
+        } catch (err) {
+          if (err.message && err.message.indexOf("10000") !== -1) {
+            currentOffset = currentOffset - 5000;
+            startingBlock = latestBlock - currentOffset;
+          } else {
+            this.setState({ currentlyRunning: false });
+          }
+          console.log(err);
+        }
 
         // if (
         //   storedData[this.state.userAddress] &&
@@ -148,11 +238,13 @@ class Home extends Component {
         //   break;
         // }
       }
-
+      setDataRetrievalCompleted(
+        `${this.state.userAddress}_${this.state.erc20Address}`
+      );
       this.setState({ currentlyRunning: false });
     } catch (err) {
+      alert(err);
       this.setState({ currentlyRunning: false });
-      console.log(err);
     }
   };
 
@@ -164,6 +256,10 @@ class Home extends Component {
     let datatable = {
       columns: [
         {
+          label: "Block Number",
+          field: "blocknumber",
+        },
+        {
           label: "Address",
           field: "address",
         },
@@ -172,8 +268,8 @@ class Home extends Component {
           field: "blockhash",
         },
         {
-          label: "Block Number",
-          field: "blocknumber",
+          label: "Transaction Hash",
+          field: "txnhash",
         },
       ],
       rows: [],
@@ -219,7 +315,6 @@ class Home extends Component {
                 disabled={this.state.currentlyRunning}
               />
             </Form.Group>
-
             <Form.Group controlId="formBasicAssetAddress">
               <Form.Label>Desired ERC20 Token Address</Form.Label>
               <Form.Control
@@ -237,17 +332,39 @@ class Home extends Component {
               disabled={this.state.currentlyRunning}
             >
               Submit
+            </Button>{" "}
+            <Button
+              variant="danger"
+              disabled={this.state.currentlyRunning}
+              onClick={this.resetData}
+            >
+              Reset
             </Button>
           </Form>
           <br />
-          {startingBlock && endingBlock && this.state.currentlyRunning && (
+          {startingBlock && endingBlock && !!this.state.currentlyRunning && (
             <span>
               <b>{`Currently Scanning blocks: ${startingBlock}-${endingBlock}`}</b>
             </span>
           )}
           <br />
+          <span>{`Total data count: ${
+            appState &&
+            appState.storedData &&
+            appState.storedData[
+              `${this.state.userAddress}_${this.state.erc20Address}`
+            ] &&
+            appState.storedData[
+              `${this.state.userAddress}_${this.state.erc20Address}`
+            ]["data"]
+              ? appState.storedData[
+                  `${this.state.userAddress}_${this.state.erc20Address}`
+                ]["data"].length
+              : 0
+          }`}</span>
+          <br />
           <span>
-            <b>Total Transactions Found: {data.length}</b>
+            <b>Total Transactions Found: {data ? data.length : 0}</b>
           </span>
           <MDBDataTableV5
             hover
@@ -263,10 +380,10 @@ class Home extends Component {
 
 Home.propTypes = {
   appState: PropTypes.object.isRequired,
-  changeText: PropTypes.func.isRequired,
-  addToList: PropTypes.func.isRequired,
   setStartAndEnd: PropTypes.func.isRequired,
   setReceivedData: PropTypes.func.isRequired,
+  setDataRetrievalCompleted: PropTypes.func.isRequired,
+  resetAllData: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state) => ({
@@ -274,8 +391,8 @@ const mapStateToProps = (state) => ({
 });
 
 export default connect(mapStateToProps, {
-  addToList,
-  changeText,
   setStartAndEnd,
   setReceivedData,
+  setDataRetrievalCompleted,
+  resetAllData,
 })(Home);

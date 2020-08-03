@@ -1,24 +1,11 @@
 import * as types from "./types";
 
-export const changeText = () => (dispatch) => {
-  dispatch({
-    type: types.CHANGE_TEXT,
-    payload: { msg: "Changed text successfully through Actions" },
-  });
-};
-
-export const addToList = (item) => (dispatch) => {
-  dispatch({
-    type: types.ADD_TO_LIST,
-    payload: { msg: "Changed text successfully through Actions", item },
-  });
-};
-
 export const setStartAndEnd = (
   startingBlock,
   endingBlock,
   userAddress,
-  erc20Address
+  erc20Address,
+  latestBlock = null
 ) => (dispatch) => {
   dispatch({
     type: types.SET_START_AND_END,
@@ -26,6 +13,7 @@ export const setStartAndEnd = (
       startingBlock,
       endingBlock,
       userAddress: `${userAddress}_${erc20Address}`,
+      latestBlock,
     },
   });
 };
@@ -44,6 +32,24 @@ export const setReceivedData = (
       endingBlock,
       userAddress: `${userAddress}_${erc20Address}`,
       data,
+    },
+  });
+};
+
+export const setDataRetrievalCompleted = (userAddress) => (dispatch) => {
+  dispatch({
+    type: types.SET_DATA_RETRIEVAL_COMPLETED,
+    payload: {
+      userAddress,
+    },
+  });
+};
+
+export const resetAllData = (userAddress) => (dispatch) => {
+  dispatch({
+    type: types.RESET_ALL_DATA,
+    payload: {
+      userAddress,
     },
   });
 };

@@ -11,17 +11,19 @@ import { PersistGate } from "redux-persist/integration/react";
 function App() {
   return (
     <Provider store={store.store}>
-      <React.Fragment>
-        <Router>
-          <NavigationBar />
-          <Layout>
-            <Switch>
-              <Route exact path="/" component={Home} />
-              <Route component={NoMatch} />
-            </Switch>
-          </Layout>
-        </Router>
-      </React.Fragment>
+      <PersistGate loading={null} persistor={store.persistor}>
+        <React.Fragment>
+          <Router>
+            <NavigationBar />
+            <Layout>
+              <Switch>
+                <Route exact path="/" component={Home} />
+                <Route component={NoMatch} />
+              </Switch>
+            </Layout>
+          </Router>
+        </React.Fragment>
+      </PersistGate>
     </Provider>
   );
 }
